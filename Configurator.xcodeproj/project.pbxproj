@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -295,7 +295,7 @@
 			);
 			mainGroup = EAA206412B16737300B5867E;
 			packageReferences = (
-				9C125F492D024CF90037311F /* XCRemoteSwiftPackageReference "cloudxr-framework" */,
+				E33E383E2D111CDD00D01DF8 /* XCLocalSwiftPackageReference "../../../Downloads/cloudxr-framework-1.0.0" */,
 			);
 			productRefGroup = EAA2066E2B16784400B5867E /* Products */;
 			projectDirPath = "";
@@ -425,7 +425,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 6KR3T733EC;
+				DEVELOPMENT_TEAM = 8U5QR96FR9;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -501,7 +501,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 6KR3T733EC;
+				DEVELOPMENT_TEAM = 8U5QR96FR9;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -647,7 +647,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_ASSET_PATHS = "\"Configurator/Preview Content\"";
-				DEVELOPMENT_TEAM = 6KR3T733EC;
+				DEVELOPMENT_TEAM = 8U5QR96FR9;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -742,7 +742,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"Configurator/Preview Content\"";
-				DEVELOPMENT_TEAM = 6KR3T733EC;
+				DEVELOPMENT_TEAM = 8U5QR96FR9;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -823,16 +823,12 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		9C125F492D024CF90037311F /* XCRemoteSwiftPackageReference "cloudxr-framework" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/NVIDIA/cloudxr-framework";
-			requirement = {
-				kind = exactVersion;
-				version = 1.0.0;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		E33E383E2D111CDD00D01DF8 /* XCLocalSwiftPackageReference "../../../Downloads/cloudxr-framework-1.0.0" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../Downloads/cloudxr-framework-1.0.0";
 		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		01C927EB2CB9BF64006D4D8D /* CloudXRKit */ = {
