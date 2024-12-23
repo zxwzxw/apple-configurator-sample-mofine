@@ -17,6 +17,7 @@ struct ImmersiveView: View {
         case none
         case rotating
         case scaling
+        case moving
     }
 
     @Environment(\.openWindow) private var openWindow
@@ -41,6 +42,7 @@ struct ImmersiveView: View {
 
     let minimumRotation = Angle(degrees: 2)
     let minimumScale: CGFloat = 0.075
+    let movementSpeed: Float = 0.1 // Adjust this value to control movement speed
     
     var body: some View {
         RealityView { content, attachments in
@@ -91,7 +93,6 @@ struct ImmersiveView: View {
         .placing(with: placementManager, sceneEntity: sceneEntity, placeable: viewModel)
         .gesture(
             DragGesture()
-                // Translations need an entity to get the coordinate system correct
                 .targetedToAnyEntity()
                 .onChanged { drag in
                     dragOnChanged(by: drag)
@@ -104,53 +105,17 @@ struct ImmersiveView: View {
             SimultaneousGesture(
                 RotateGesture3D(constrainedToAxis: .z, minimumAngleDelta: minimumRotation)
                     .onChanged { value in
-                        guard currentGesture != .scaling, viewModel.currentViewingMode == .tabletop
-                        else {
-                            return
-                        }
-                        currentGesture = .rotating
-                        // Rotation direction is indicated by the Z axis direction (+/-)
-                        let radians = value.rotation.angle.radians * -sign(value.rotation.axis.z)
-                        rotate(to: Float(radians))
+                        rotateGesture(value: value)
                     }
                     .onEnded { value in
-                        guard currentGesture != .scaling, viewModel.currentViewingMode == .tabletop
-                        else {
-                            return
-                        }
-                        // Rotation direction is indicated by the Z axis direction (+/-)
-                        let radians = value.rotation.angle.radians * -sign(value.rotation.axis.z)
-                        rotate(to: Float(radians))
-                        lastRotation = 0
-                        // Turn off currentGesture after a short delay;
-                        // otherwise we might get a spurious scale gesture
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            currentGesture = .none
-                        }
+                        rotateGestureEnded(value: value)
                     },
                 MagnifyGesture(minimumScaleDelta: minimumScale)
                     .onChanged { value in
-                        guard currentGesture != .rotating, viewModel.currentViewingMode == .tabletop
-                        else {
-                            return
-                        }
-                        currentGesture = .scaling
-                        scale(by: Float(value.magnification))
+                        scaleGesture(value: value)
                     }
-                    .onEnded() { value in
-                        guard
-                            currentGesture != .rotating,
-                            viewModel.currentViewingMode == .tabletop
-                        else {
-                            return
-                        }
-                        scale(by: Float(value.magnification))
-                        lastScale = sessionEntity.scale.x
-                        // Turn off currentGesture after a short delay;
-                        // otherwise we might get a spurious rotation gesture
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            currentGesture = .none
-                        }
+                    .onEnded { value in
+                        scaleGestureEnded(value: value)
                     }
             )
         )
@@ -161,53 +126,62 @@ struct ImmersiveView: View {
         }
     }
 
+    func rotateGesture(value: RotateGesture3D.Value) {
+        guard currentGesture != .scaling, currentGesture != .moving else { return }
+        currentGesture = .rotating
+        let radians = value.rotation.angle.radians * -sign(value.rotation.axis.z)
+        rotate(to: Float(radians))
+    }
+
+    func rotateGestureEnded(value: RotateGesture3D.Value) {
+        guard currentGesture != .scaling, currentGesture != .moving else { return }
+        let radians = value.rotation.angle.radians * -sign(value.rotation.axis.z)
+        rotate(to: Float(radians))
+        lastRotation = 0
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            currentGesture = .none
+        }
+    }
+
+    func scaleGesture(value: MagnifyGesture.Value) {
+        guard currentGesture != .rotating, currentGesture != .moving else { return }
+        currentGesture = .scaling
+        scale(by: Float(value.magnification))
+    }
+
+    func scaleGestureEnded(value: MagnifyGesture.Value) {
+        guard currentGesture != .rotating, currentGesture != .moving else { return }
+        scale(by: Float(value.magnification))
+        lastScale = sessionEntity.scale.x
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            currentGesture = .none
+        }
+    }
+
     func rotate(to radians: Float) {
-        // RotateGesture3D seems to not have a large range of rotation, so magnify it
-        // by a scalar value to allow for more range - arrived at through trial and error
         let rotationFactor: Float = 3
-
-        // Rotations start at minimumRotation, so remove that first, appropriately signed +/-
         let rotation = radians * rotationFactor
-
-        // The only session rotation method available is rotating by a delta
         let delta = rotation - lastRotation
-
-        // Remember the previous value for the next delta
         lastRotation = rotation
-
-        // Rotate the model
         rotateModelBy(radians: delta)
     }
 
-    public func rotateModelBy(radians: Float) {
+    func rotateModelBy(radians: Float) {
         modelRotationRadians += radians
         sessionEntity.setOrientation(simd_quatf(angle: modelRotationRadians, axis: simd_float3(0, 1, 0)), relativeTo: nil)
     }
 
     func scale(by factor: Float) {
         if viewModel.currentViewingMode == .tabletop {
-            let newScale = Float(factor) * lastScale
-
-            if newScale > 5 {
-                sessionEntity.scale = .one * 5;
-            }
-            else if newScale < 0.2 {
-                sessionEntity.scale = .one * 0.2
-            }
-            else if newScale < 1.1 && newScale > 0.9 {
-                sessionEntity.scale = .one * 1.0
-            }
-            else {
-                sessionEntity.scale = .one * newScale
-            }
+            let newScale = factor * lastScale
+            sessionEntity.scale = simd_clamp(.one * newScale, .one * 0.2, .one * 5)
         }
     }
 
     func dragOnChanged(by drag: EntityTargetValue<DragGesture.Value>) {
         if viewModel.currentViewingMode == .tabletop {
             dragTableTop(by: drag)
-        }
-        else {
+        } else {
             dragPortal(by: drag)
         }
     }
@@ -215,17 +189,14 @@ struct ImmersiveView: View {
     func dragOnEnded(by drag: EntityTargetValue<DragGesture.Value>) {
         if viewModel.currentViewingMode == .tabletop {
             dragTableTop(by: drag)
-        }
-        else {
+        } else {
             dragPortal(by: drag)
         }
-
         finishedGesture()
     }
 
     func dragPortal(by drag: EntityTargetValue<DragGesture.Value>) {
         guard drag.entity.name == ViewingModeSystem.portalBarName,
-              // the parent of the portal and the portalBar should be dragged around
               let bloomPreventionParent = drag.entity.parent,
               appModel.session.state == .connected
         else { return }
@@ -237,24 +208,47 @@ struct ImmersiveView: View {
         move(bloomPreventionParent, to: locationScene)
     }
 
+    func dragTableTop(by drag: EntityTargetValue<DragGesture.Value>) {
+        guard currentGesture != .rotating, currentGesture != .scaling else { return }
+        currentGesture = .moving
+        
+        let location = drag.location3D
+        guard !location.isNaN, location.isFinite else { return }
+
+        let locationScene = drag.convert(location, from: .local, to: .scene)
+        guard !locationScene.isNaN, locationScene.isFinite else { return }
+
+        if lastLocation != .zero {
+            let delta = locationScene - lastLocation
+            
+            // Move the sessionEntity
+            sessionEntity.position += delta * movementSpeed
+            
+            // Rotate based on movement
+            if let latestHeadPose = appModel.session.latestHeadPose {
+                let deltaCameraSpace = latestHeadPose.matrix.inverse * vector_float4(delta.x, delta.y, delta.z, 0)
+                rotateModelBy(radians: rotationSpeed * deltaCameraSpace.x)
+            }
+        }
+
+        lastLocation = locationScene
+    }
+
     func move(_ entity: Entity, to location: simd_float3) {
         guard appModel.session.state == .connected else { return }
         entity.position = simd_float3(
             location.x,
-            // Portal movement only in X and Z
             entity.position.y,
             location.z - ViewingModeSystem.portalContainerPosition.z)
-        guard let parent = entity.parent else {return}
+        guard let parent = entity.parent else { return }
         if let latestHeadPose = appModel.session.latestHeadPose {
             var headPosition = latestHeadPose.translation
-            // Convert head pose to portal local space
             headPosition = parent.convert(position: headPosition, from: nil)
             headPosition.y = entity.position.y
             entity.look(at: headPosition, from: entity.position, relativeTo: parent, forward: .positiveZ)
         }
     }
 
-    /// move the current tabletop/portal entity to the given location
     func move(to position: simd_float3, rotation: simd_quatf) {
         let entity: Entity
         if viewModel.currentViewingMode == .portal {
@@ -266,39 +260,12 @@ struct ImmersiveView: View {
         move(entity, to: position)
     }
 
-    func dragTableTop(by drag: EntityTargetValue<DragGesture.Value>) {
-        // drag.location3D can sometimes be NaN, so be careful in general..
-        let location = drag.location3D
-        guard !location.isNaN, location.isFinite else {
-            return
-        }
-
-        let locationScene = drag.convert(location, from: .local, to: .scene)
-        // Even if drag.location3D isn't NaN, convert can return a NaN
-        guard !locationScene.isNaN, locationScene.isFinite else {
-            return
-        }
-
-        if lastLocation != .zero {
-            let lastDelta = locationScene - lastLocation
-            // Need to transform the lastDelta displacement into camera space
-            if let latestHeadPose = appModel.session.latestHeadPose {
-                let lastDeltaCamera = latestHeadPose.matrix.inverse * vector_float4(lastDelta.x, lastDelta.y, lastDelta.z, 0)
-                rotateModelBy(radians: rotationSpeed * lastDeltaCamera.x)
-            }
-        }
-
-        lastLocation = locationScene
-    }
-
     func finishedGesture() {
         lastLocation = .zero
+        currentGesture = .none
     }
 
-    // TODO: Change this to the bounding box of the object sent from OV
     func makeInvisibleGestureWall() -> Entity {
-        // Add an invisible plane that covers the viewport, attached to the headset that can accept gestures
-        // so as to not get in the way of gestures on UI objects, the plane is 20 meters away.
         let plane = Entity()
         plane.components.set(InputTargetComponent())
         var collision = CollisionComponent(shapes: [.generateBox(width: 40, height: 40, depth: 0.01)])
