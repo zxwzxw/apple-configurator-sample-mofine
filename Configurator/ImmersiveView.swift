@@ -15,7 +15,6 @@ import RealityKit
 struct ImmersiveView: View {
     enum CurrentGesture: String {
         case none
-        case rotating
         case scaling
         case moving
     }
@@ -30,17 +29,13 @@ struct ImmersiveView: View {
 
     // Gesture states.
     @State private var cameraAnchor = Entity()
-    @State private var rotationSpeed = Float(0.25)
     @State private var lastLocation = vector_float3.zero
     @State private var lastScale = Float(1)
-    @State private var lastRotation = Float.zero
     @State private var currentGesture = CurrentGesture.none
-    @State private var modelRotationRadians: Float = 0.0
     @State private var placementManager = PlacementManager()
 
     @GestureState private var magnifyBy = 1.0
 
-    let minimumRotation = Angle(degrees: 2)
     let minimumScale: CGFloat = 0.075
     let movementSpeed: Float = 0.1 // Adjust this value to control movement speed
     
@@ -102,22 +97,13 @@ struct ImmersiveView: View {
                 }
         )
         .gesture(
-            SimultaneousGesture(
-                RotateGesture3D(constrainedToAxis: .z, minimumAngleDelta: minimumRotation)
-                    .onChanged { value in
-                        rotateGesture(value: value)
-                    }
-                    .onEnded { value in
-                        rotateGestureEnded(value: value)
-                    },
-                MagnifyGesture(minimumScaleDelta: minimumScale)
-                    .onChanged { value in
-                        scaleGesture(value: value)
-                    }
-                    .onEnded { value in
-                        scaleGestureEnded(value: value)
-                    }
-            )
+            MagnifyGesture(minimumScaleDelta: minimumScale)
+                .onChanged { value in
+                    scaleGesture(value: value)
+                }
+                .onEnded { value in
+                    scaleGestureEnded(value: value)
+                }
         )
         .onChange(of: appModel.session.state) { oldState, newState in
             if newState == .connected {
@@ -126,49 +112,19 @@ struct ImmersiveView: View {
         }
     }
 
-    func rotateGesture(value: RotateGesture3D.Value) {
-        guard currentGesture != .scaling, currentGesture != .moving else { return }
-        currentGesture = .rotating
-        let radians = value.rotation.angle.radians * -sign(value.rotation.axis.z)
-        rotate(to: Float(radians))
-    }
-
-    func rotateGestureEnded(value: RotateGesture3D.Value) {
-        guard currentGesture != .scaling, currentGesture != .moving else { return }
-        let radians = value.rotation.angle.radians * -sign(value.rotation.axis.z)
-        rotate(to: Float(radians))
-        lastRotation = 0
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            currentGesture = .none
-        }
-    }
-
     func scaleGesture(value: MagnifyGesture.Value) {
-        guard currentGesture != .rotating, currentGesture != .moving else { return }
+        guard currentGesture != .moving else { return }
         currentGesture = .scaling
         scale(by: Float(value.magnification))
     }
 
     func scaleGestureEnded(value: MagnifyGesture.Value) {
-        guard currentGesture != .rotating, currentGesture != .moving else { return }
+        guard currentGesture != .moving else { return }
         scale(by: Float(value.magnification))
         lastScale = sessionEntity.scale.x
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             currentGesture = .none
         }
-    }
-
-    func rotate(to radians: Float) {
-        let rotationFactor: Float = 3
-        let rotation = radians * rotationFactor
-        let delta = rotation - lastRotation
-        lastRotation = rotation
-        rotateModelBy(radians: delta)
-    }
-
-    func rotateModelBy(radians: Float) {
-        modelRotationRadians += radians
-        sessionEntity.setOrientation(simd_quatf(angle: modelRotationRadians, axis: simd_float3(0, 1, 0)), relativeTo: nil)
     }
 
     func scale(by factor: Float) {
@@ -209,7 +165,7 @@ struct ImmersiveView: View {
     }
 
     func dragTableTop(by drag: EntityTargetValue<DragGesture.Value>) {
-        guard currentGesture != .rotating, currentGesture != .scaling else { return }
+        guard currentGesture != .scaling else { return }
         currentGesture = .moving
         
         let location = drag.location3D
@@ -223,12 +179,6 @@ struct ImmersiveView: View {
             
             // Move the sessionEntity
             sessionEntity.position += delta * movementSpeed
-            
-            // Rotate based on movement
-            if let latestHeadPose = appModel.session.latestHeadPose {
-                let deltaCameraSpace = latestHeadPose.matrix.inverse * vector_float4(delta.x, delta.y, delta.z, 0)
-                rotateModelBy(radians: rotationSpeed * deltaCameraSpace.x)
-            }
         }
 
         lastLocation = locationScene
