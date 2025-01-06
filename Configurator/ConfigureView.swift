@@ -61,7 +61,7 @@ struct ConfigureView: View {
             styleList
             space
             purseActions
-            Spacer().frame(height: 10)
+            Spacer().frame(height: 80)
         }
         .padding(.all)
     }
@@ -111,9 +111,10 @@ struct ConfigureView: View {
     var purseActions: some View {
         // Horizontal stack to place the Rotate and Visibility buttons
         // side by side
-        HStack {
+        VStack {
+            HStack{
             LabelButton(
-                label: "Visibility",
+                label: "V",
                 onText: "On",
                 offText: "Off",
                 toggleView: true,
@@ -128,6 +129,26 @@ struct ConfigureView: View {
                 // Condition to determine the text displayed on the button
                 viewModel.purseVisible
             }
+            
+            LabelButton(
+                // The button's label
+                label: "p / s",
+                // not a toggle button
+                toggleView: true,
+                // Icon for the button
+                icon: AnyView(dashed),
+                isOn: viewModel.isPlaying
+            )  { isOn in
+                // Sends the appropriate rotation action
+                if isOn {
+                    appModel.stateManager.send(ovstAction.start)
+                } else {
+                    appModel.stateManager.send(ovstAction.stop)
+                }
+                viewModel.isPlaying = isOn
+            }
+            }
+            HStack{
             LabelButton(
                 // The button's label
                 label: "Rotate",
@@ -155,6 +176,7 @@ struct ConfigureView: View {
             }
             .disabled(placementDisabled)
             .help(placementHelpString)
+            }
         }
     }
     

@@ -30,6 +30,7 @@ class ViewModel: Placeable {
     }
 
     var purseVisible = true
+    var isPlaying:Bool = false
     var purseRotated = false
     var lightIntensity: Float = 1.0
     var sessionEntity: Entity?

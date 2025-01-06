@@ -190,7 +190,7 @@ public enum PurseVisibility: String, OmniverseMessageProtocol {
 
 public struct AnimationClientInputEvent: EncodableInputEvent {
     public let message: Dictionary<String, String>
-    public let type = "setPurseRotation"
+    public let type = "setPurseRotation3"
 
     public init(_ animation: String) {
         message = [
@@ -265,4 +265,23 @@ public enum OmniverseEnvironment: String, CaseIterable, OmniverseMessageProtocol
     static var lightable: [OmniverseEnvironment] = [.plinths, .desk, .marblewall]
     
     public var encodable: any EncodableInputEvent { EnvironmentClientInputEvent(self) }
+}
+
+public struct ovstClientInputEvent: EncodableInputEvent {
+    public let message: Dictionary<String, String>
+    public let type = "setovstartstop"
+
+    public init(_ animation: String) {
+        message = [
+            "animationName": animation
+        ]
+    }
+}
+
+
+public enum ovstAction: String, OmniverseMessageProtocol {
+    case start = "startCW"
+    case stop = "stopCCW"
+    
+    public var encodable: any EncodableInputEvent { ovstClientInputEvent(self.rawValue) }
 }

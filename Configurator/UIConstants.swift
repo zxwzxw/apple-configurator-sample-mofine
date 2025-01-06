@@ -28,7 +28,7 @@ struct UIConstants {
     static let maxTrimScrollHeight: CGFloat = 266
 
     /// width of entire action control
-    static let actionWidth: CGFloat = 75
+    static let actionWidth: CGFloat = 50
 
     /// width of toggle button section of action control
     static let actionToggleSize = CGSize(width: 120, height: 35)
