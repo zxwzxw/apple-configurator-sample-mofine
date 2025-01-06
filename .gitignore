@@ -12,3 +12,27 @@ build/
 logs/
 .vscode
 
+# Xcode
+*.xcuserdatad
+*.xcscmblueprint
+*.xccheckout
+*.xcuserdata
+# Xcode DerivedData
+DerivedData/
+# Build
+build/
+# SwiftPM
+.build/
+# CocoaPods
+Pods/
+# Carthage
+Carthage/
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+# Ignore Private Keys / Certificates
+*.p12
+*.mobileprovision
+*.cer
+*.pem
